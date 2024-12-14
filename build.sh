@@ -1,11 +1,18 @@
 #!/usr/bin/env bash
 
-# Install system dependencies
-apt-get update
-apt-get install -y wget build-essential
+# Download and install ta-lib
+wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz
+tar -xvzf ta-lib-0.4.0-src.tar.gz
+cd ta-lib/
+./configure --prefix=$HOME/.local
+make
+make install
+cd ..
+rm -rf ta-lib-0.4.0-src.tar.gz ta-lib/
 
-# Install TA-Lib
-apt-get install -y ta-lib
+# Set TA_LIBRARY_PATH and TA_INCLUDE_PATH
+export TA_LIBRARY_PATH=$HOME/.local/lib
+export TA_INCLUDE_PATH=$HOME/.local/include
 
 # Install Python dependencies
-pip install -r requirements.txt
+pip install --user -r requirements.txt
