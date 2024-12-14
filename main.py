@@ -8,10 +8,11 @@ from dotenv import load_dotenv
 from typing import List, Dict
 import logging
 
-load_dotenv()
-
-# Configurar logging
-logging.basicConfig(level=logging.INFO)
+# Configurar logging más detallado
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
@@ -19,17 +20,31 @@ app = FastAPI()
 # Configurar CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Ajusta a tu frontend
+    allow_origins=[
+        "http://localhost:3000",  # Para desarrollo local
+        "https://crypto-dashboard-frontend.vercel.app",  # Tu URL principal en Vercel
+        "https://crypto-dashboard-frontend-git-main.vercel.app",  # URL de preview
+        "https://crypto-dashboard-frontend-*.vercel.app"  # Para todas las ramas de desarrollo
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=["*"]
 )
 
-client = UMFutures()
+# Inicializar cliente de Binance con mejor manejo de errores
+try:
+    client = UMFutures()
+    # Probar la conexión
+    client.ping()
+    logger.info("Conexión exitosa con Binance")
+except Exception as e:
+    logger.error(f"Error al conectar con Binance: {str(e)}")
+    client = None
 
 def get_all_futures_symbols() -> List[Dict]:
     try:
+        logger.info("Obteniendo información de exchange...")
         exchange_info = client.exchange_info()
         symbols = []
         for symbol in exchange_info['symbols']:
@@ -41,8 +56,10 @@ def get_all_futures_symbols() -> List[Dict]:
                     'pricePrecision': symbol['pricePrecision'],
                     'quantityPrecision': symbol['quantityPrecision']
                 })
+        logger.info(f"Símbolos procesados exitosamente: {len(symbols)} símbolos activos")
         return symbols
     except Exception as e:
+        logger.error(f"Error en get_all_futures_symbols: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 def calculate_indicators(klines: List) -> Dict:
@@ -164,16 +181,22 @@ def calculate_indicators(klines: List) -> Dict:
 @app.get("/api/symbols")
 async def get_symbols():
     try:
+        if client is None:
+            raise HTTPException(status_code=500, detail="No se pudo establecer conexión con Binance")
+        
         symbols = get_all_futures_symbols()
-        logger.info("Símbolos obtenidos correctamente.")
+        logger.info(f"Símbolos obtenidos exitosamente: {len(symbols)} símbolos encontrados")
         return {"symbols": symbols}
     except Exception as e:
-        logger.error(f"Error al obtener símbolos: {e}")
+        logger.error(f"Error en get_symbols: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/analysis/{symbol}")
 async def get_analysis(symbol: str, interval: str = "1h"):
     try:
+        if client is None:
+            raise HTTPException(status_code=500, detail="No se pudo establecer conexión con Binance")
+        
         klines = client.klines(symbol=symbol, interval=interval, limit=200)
         logger.info(f"Datos históricos obtenidos para {symbol}.")
         
@@ -186,7 +209,7 @@ async def get_analysis(symbol: str, interval: str = "1h"):
             "status": "success"
         }
     except Exception as e:
-        logger.error(f"Error al analizar {symbol}: {e}")
+        logger.error(f"Error al analizar {symbol}: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 def generate_trading_suggestion(analysis):
@@ -231,9 +254,8 @@ def generate_trading_suggestion(analysis):
                 "message": "No hay señal clara de trading en este momento"
             }
     except Exception as e:
-        logger.error(f"Error generando sugerencia de trading: {e}")
+        logger.error(f"Error generando sugerencia de trading: {str(e)}")
         return {"type": "ERROR", "message": str(e)}
-
 
 if __name__ == "__main__":
     import uvicorn
