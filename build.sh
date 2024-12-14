@@ -7,5 +7,6 @@ cd ta-lib/
 ./configure --prefix=$HOME/.local
 make
 make install
+
 cd ..
 rm -rf ta-lib-0.4.0-src.tar.gz ta-lib/
