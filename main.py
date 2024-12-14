@@ -20,12 +20,7 @@ app = FastAPI()
 # Configurar CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",  # Para desarrollo local
-        "https://crypto-dashboard-frontend.vercel.app",  # Tu URL principal en Vercel
-        "https://crypto-dashboard-frontend-git-main.vercel.app",  # URL de preview
-        "https://crypto-dashboard-frontend-*.vercel.app"  # Para todas las ramas de desarrollo
-    ],
+    allow_origins=["*"],  # Ajusta a tu frontend
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

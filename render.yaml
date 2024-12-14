@@ -2,7 +2,7 @@ services:
   - type: web
     name: crypto-dashboard-api
     env: python
-    buildCommand: chmod +x build.sh && ./build.sh
+    buildCommand: docker build -t your-image-name .
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: PYTHON_VERSION
