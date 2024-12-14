@@ -1,20 +1,27 @@
 FROM python:3.11-slim
 
+# Instalar dependencias para compilar
 RUN apt-get update && apt-get install -y --no-install-recommends \
     wget build-essential gcc make autoconf automake libtool pkg-config ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
+
+# Descargar y descomprimir TA-Lib
+RUN wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz && \
+    tar -xzf ta-lib-0.4.0-src.tar.gz
+
+# Cambiar al directorio TA-Lib
+WORKDIR /app/ta-lib-0.4.0
+
+# Configurar, compilar e instalar
+RUN ./configure --prefix=/usr && make && make install
+
+# Limpiar
+WORKDIR /app
+RUN rm -rf ta-lib-0.4.0 ta-lib-0.4.0-src.tar.gz
+
 COPY requirements.txt .
-
-# Descargar y compilar TA-Lib
-RUN wget https://downloads.sourceforge.net/project/ta-lib/ta-lib/0.4.0/ta-lib-0.4.0-src.tar.gz && \
-    tar -xzf ta-lib-0.4.0-src.tar.gz && \
-    cd ta-lib-0.4.0 && \
-    ./configure --prefix=/usr && \
-    make && make install && \
-    cd .. && rm -rf ta-lib-0.4.0 ta-lib-0.4.0-src.tar.gz
-
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
