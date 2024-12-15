@@ -194,13 +194,18 @@ async def get_symbols():
 @app.get("/api/analysis/{symbol}")
 async def get_analysis(symbol: str, interval: str = "1h"):
     try:
+        logger.info(f"Analyzing {symbol} with interval {interval}")
         if client is None:
+            logger.error("Binance client is not initialized")
             raise HTTPException(status_code=500, detail="No se pudo establecer conexión con Binance")
         
+        logger.info(f"Fetching klines data for {symbol}")
         klines = client.klines(symbol=symbol, interval=interval, limit=200)
-        logger.info(f"Datos históricos obtenidos para {symbol}.")
+        logger.info(f"Successfully retrieved {len(klines)} klines for {symbol}")
         
+        logger.info("Calculating indicators")
         analysis = calculate_indicators(klines)
+        logger.info("Generating trading suggestion")
         suggestion = generate_trading_suggestion(analysis)
         
         return {
@@ -209,7 +214,7 @@ async def get_analysis(symbol: str, interval: str = "1h"):
             "status": "success"
         }
     except Exception as e:
-        logger.error(f"Error al analizar {symbol}: {str(e)}")
+        logger.error(f"Error al analizar {symbol}: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 def generate_trading_suggestion(analysis):
