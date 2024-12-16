@@ -178,6 +178,14 @@ def calculate_indicators(klines: List) -> Dict:
         }
     }
 
+def convert_timeframe(interval: str) -> str:
+    """Convert frontend timeframe format to Binance API format"""
+    # If already in correct format (1h, 4h, 1d), return as is
+    if interval.endswith(('h', 'd')):
+        return interval
+    # Convert minute intervals (1, 5, 15, 30) to Binance format (1m, 5m, 15m, 30m)
+    return f"{interval}m"
+
 @app.get("/api/symbols")
 async def get_symbols():
     try:
@@ -199,8 +207,12 @@ async def get_analysis(symbol: str, interval: str = "1h"):
             logger.error("Binance client is not initialized")
             raise HTTPException(status_code=500, detail="No se pudo establecer conexión con Binance")
         
+        # Convert timeframe to Binance format
+        binance_interval = convert_timeframe(interval)
+        logger.info(f"Converting interval {interval} to Binance format: {binance_interval}")
+        
         logger.info(f"Fetching klines data for {symbol}")
-        klines = client.klines(symbol=symbol, interval=interval, limit=200)
+        klines = client.klines(symbol=symbol, interval=binance_interval, limit=200)
         logger.info(f"Successfully retrieved {len(klines)} klines for {symbol}")
         
         logger.info("Calculating indicators")
