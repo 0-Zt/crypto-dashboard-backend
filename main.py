@@ -202,6 +202,33 @@ def convert_timeframe(interval: str) -> str:
     # Convert minute intervals (1, 5, 15, 30) to Binance format (1m, 5m, 15m, 30m)
     return f"{interval}m"
 
+def calculate_price_levels(price: float, is_long: bool, atr_value: float) -> dict:
+    """Calcula los niveles de precio para stop loss y take profit basados en ATR"""
+    # Usar ATR para calcular los niveles
+    stop_loss_distance = atr_value * 1.5  # 1.5 veces el ATR
+    tp1_distance = atr_value * 2  # 2 veces el ATR
+    tp2_distance = atr_value * 3  # 3 veces el ATR
+    tp3_distance = atr_value * 4  # 4 veces el ATR
+    
+    if is_long:
+        return {
+            "stop_loss": price - stop_loss_distance,
+            "targets": [
+                price + tp1_distance,
+                price + tp2_distance,
+                price + tp3_distance
+            ]
+        }
+    else:
+        return {
+            "stop_loss": price + stop_loss_distance,
+            "targets": [
+                price - tp1_distance,
+                price - tp2_distance,
+                price - tp3_distance
+            ]
+        }
+
 @app.get("/api/symbols")
 async def get_symbols():
     try:
@@ -252,44 +279,37 @@ def generate_trading_suggestion(analysis):
         ema_21 = analysis["indicators"]["ema"]["ema21"]
         ema_50 = analysis["indicators"]["ema"]["ema50"]
         rsi = analysis["indicators"]["rsi"]["value"]
+        atr = analysis["indicators"]["atr"]
         
         is_bullish = analysis["trend"] in ["BULLISH", "STRONG_BULLISH"]
         is_bearish = analysis["trend"] in ["BEARISH", "STRONG_BEARISH"]
         
         if is_bullish:
-            # Calculamos los porcentajes con más precisión
-            stop_loss_price = current_price * 0.98
-            target1_price = current_price * 1.02
-            target2_price = current_price * 1.04
-            target3_price = current_price * 1.06
+            # Calcular niveles usando ATR
+            levels = calculate_price_levels(current_price, True, atr)
             
             return {
                 "type": "LONG",
                 "entry": round(current_price, price_precision),
-                "stopLoss": round(stop_loss_price, price_precision),
+                "stopLoss": round(levels["stop_loss"], price_precision),
                 "targets": [
-                    round(target1_price, price_precision),
-                    round(target2_price, price_precision),
-                    round(target3_price, price_precision)
+                    round(target, price_precision)
+                    for target in levels["targets"]
                 ],
                 "confidence": 75 if rsi < 70 else 60,
                 "risk": "Moderado"
             }
         elif is_bearish:
-            # Calculamos los porcentajes con más precisión
-            stop_loss_price = current_price * 1.02
-            target1_price = current_price * 0.98
-            target2_price = current_price * 0.96
-            target3_price = current_price * 0.94
+            # Calcular niveles usando ATR
+            levels = calculate_price_levels(current_price, False, atr)
             
             return {
                 "type": "SHORT",
                 "entry": round(current_price, price_precision),
-                "stopLoss": round(stop_loss_price, price_precision),
+                "stopLoss": round(levels["stop_loss"], price_precision),
                 "targets": [
-                    round(target1_price, price_precision),
-                    round(target2_price, price_precision),
-                    round(target3_price, price_precision)
+                    round(target, price_precision)
+                    for target in levels["targets"]
                 ],
                 "confidence": 75 if rsi > 30 else 60,
                 "risk": "Moderado"
