@@ -248,35 +248,48 @@ async def get_analysis(symbol: str, interval: str = "1h"):
 def generate_trading_suggestion(analysis):
     try:
         current_price = analysis["price"]["value"]
+        price_precision = analysis["price"]["precision"]
         ema_21 = analysis["indicators"]["ema"]["ema21"]
         ema_50 = analysis["indicators"]["ema"]["ema50"]
         rsi = analysis["indicators"]["rsi"]["value"]
         
-        is_bullish = current_price > ema_21 and ema_21 > ema_50 and rsi > 40
-        is_bearish = current_price < ema_21 and ema_21 < ema_50 and rsi < 60
+        is_bullish = analysis["trend"] in ["BULLISH", "STRONG_BULLISH"]
+        is_bearish = analysis["trend"] in ["BEARISH", "STRONG_BEARISH"]
         
         if is_bullish:
+            # Calculamos los porcentajes con más precisión
+            stop_loss_price = current_price * 0.98
+            target1_price = current_price * 1.02
+            target2_price = current_price * 1.04
+            target3_price = current_price * 1.06
+            
             return {
                 "type": "LONG",
-                "entry": round(current_price, analysis["price"]["precision"]),
-                "stopLoss": round(current_price * 0.98, analysis["price"]["precision"]),
+                "entry": round(current_price, price_precision),
+                "stopLoss": round(stop_loss_price, price_precision),
                 "targets": [
-                    round(current_price * 1.02, analysis["price"]["precision"]),
-                    round(current_price * 1.04, analysis["price"]["precision"]),
-                    round(current_price * 1.06, analysis["price"]["precision"])
+                    round(target1_price, price_precision),
+                    round(target2_price, price_precision),
+                    round(target3_price, price_precision)
                 ],
                 "confidence": 75 if rsi < 70 else 60,
                 "risk": "Moderado"
             }
         elif is_bearish:
+            # Calculamos los porcentajes con más precisión
+            stop_loss_price = current_price * 1.02
+            target1_price = current_price * 0.98
+            target2_price = current_price * 0.96
+            target3_price = current_price * 0.94
+            
             return {
                 "type": "SHORT",
-                "entry": round(current_price, analysis["price"]["precision"]),
-                "stopLoss": round(current_price * 1.02, analysis["price"]["precision"]),
+                "entry": round(current_price, price_precision),
+                "stopLoss": round(stop_loss_price, price_precision),
                 "targets": [
-                    round(current_price * 0.98, analysis["price"]["precision"]),
-                    round(current_price * 0.96, analysis["price"]["precision"]),
-                    round(current_price * 0.94, analysis["price"]["precision"])
+                    round(target1_price, price_precision),
+                    round(target2_price, price_precision),
+                    round(target3_price, price_precision)
                 ],
                 "confidence": 75 if rsi > 30 else 60,
                 "risk": "Moderado"
@@ -284,11 +297,18 @@ def generate_trading_suggestion(analysis):
         else:
             return {
                 "type": "NEUTRAL",
-                "message": "No hay señal clara de trading en este momento"
+                "message": "No hay señal clara de trading en este momento",
+                "confidence": 0,
+                "risk": "N/A"
             }
     except Exception as e:
         logger.error(f"Error generando sugerencia de trading: {str(e)}")
-        return {"type": "ERROR", "message": str(e)}
+        return {
+            "type": "ERROR",
+            "message": "Error al generar sugerencia de trading",
+            "confidence": 0,
+            "risk": "N/A"
+        }
 
 if __name__ == "__main__":
     import uvicorn
