@@ -67,6 +67,17 @@ def calculate_indicators(klines: List) -> Dict:
         'taker_buy_quote', 'ignore'
     ])
     
+    # Determinar la precisión basada en el precio actual
+    def get_price_precision(price):
+        if price < 0.0001:
+            return 8
+        elif price < 0.01:
+            return 6
+        elif price < 1:
+            return 4
+        else:
+            return 2
+
     for col in ['open', 'high', 'low', 'close', 'volume']:
         df[col] = pd.to_numeric(df[col])
 
@@ -103,6 +114,8 @@ def calculate_indicators(klines: List) -> Dict:
 
     # Obtener valores actuales
     current_price = float(df['close'].iloc[-1])
+    price_precision = get_price_precision(current_price)
+    
     current_ema21 = float(df['ema21'].iloc[-1])
     current_ema50 = float(df['ema50'].iloc[-1])
     current_ema200 = float(df['ema200'].iloc[-1])
@@ -145,33 +158,36 @@ def calculate_indicators(klines: List) -> Dict:
 
     return {
         "trend": trend,
-        "price": current_price,
+        "price": {
+            "value": current_price,
+            "precision": price_precision
+        },
         "indicators": {
             "ema": {
-                "ema21": current_ema21,
-                "ema50": current_ema50,
-                "ema200": current_ema200
+                "ema21": round(current_ema21, price_precision),
+                "ema50": round(current_ema50, price_precision),
+                "ema200": round(current_ema200, price_precision)
             },
             "rsi": {
-                "value": current_rsi,
+                "value": round(current_rsi, 2),
                 "analysis": rsi_analysis
             },
             "bollinger_bands": {
-                "upper": float(df['bb_upper'].iloc[-1]),
-                "middle": float(df['sma20'].iloc[-1]),
-                "lower": float(df['bb_lower'].iloc[-1]),
+                "upper": round(float(df['bb_upper'].iloc[-1]), price_precision),
+                "middle": round(float(df['sma20'].iloc[-1]), price_precision),
+                "lower": round(float(df['bb_lower'].iloc[-1]), price_precision),
                 "analysis": bb_analysis
             },
             "macd": {
-                "macd": current_macd,
-                "signal": current_signal,
-                "histogram": float(df['macd_hist'].iloc[-1]),
+                "macd": round(current_macd, price_precision),
+                "signal": round(current_signal, price_precision),
+                "histogram": round(float(df['macd_hist'].iloc[-1]), price_precision),
                 "analysis": macd_analysis
             },
-            "atr": float(df['atr'].iloc[-1])
+            "atr": round(float(df['atr'].iloc[-1]), price_precision)
         },
         "analysis": {
-            "summary": f"El precio actual (${current_price:.2f}) está en una tendencia {trend.lower().replace('_', ' ')}.",
+            "summary": f"El precio actual (${current_price:.{price_precision}f}) está en una tendencia {trend.lower().replace('_', ' ')}.",
             "rsi": rsi_analysis,
             "bollinger": bb_analysis,
             "macd": macd_analysis
@@ -231,7 +247,7 @@ async def get_analysis(symbol: str, interval: str = "1h"):
 
 def generate_trading_suggestion(analysis):
     try:
-        current_price = analysis["price"]
+        current_price = analysis["price"]["value"]
         ema_21 = analysis["indicators"]["ema"]["ema21"]
         ema_50 = analysis["indicators"]["ema"]["ema50"]
         rsi = analysis["indicators"]["rsi"]["value"]
@@ -242,12 +258,12 @@ def generate_trading_suggestion(analysis):
         if is_bullish:
             return {
                 "type": "LONG",
-                "entry": round(current_price, 2),
-                "stopLoss": round(current_price * 0.98, 2),
+                "entry": round(current_price, analysis["price"]["precision"]),
+                "stopLoss": round(current_price * 0.98, analysis["price"]["precision"]),
                 "targets": [
-                    round(current_price * 1.02, 2),
-                    round(current_price * 1.04, 2),
-                    round(current_price * 1.06, 2)
+                    round(current_price * 1.02, analysis["price"]["precision"]),
+                    round(current_price * 1.04, analysis["price"]["precision"]),
+                    round(current_price * 1.06, analysis["price"]["precision"])
                 ],
                 "confidence": 75 if rsi < 70 else 60,
                 "risk": "Moderado"
@@ -255,12 +271,12 @@ def generate_trading_suggestion(analysis):
         elif is_bearish:
             return {
                 "type": "SHORT",
-                "entry": round(current_price, 2),
-                "stopLoss": round(current_price * 1.02, 2),
+                "entry": round(current_price, analysis["price"]["precision"]),
+                "stopLoss": round(current_price * 1.02, analysis["price"]["precision"]),
                 "targets": [
-                    round(current_price * 0.98, 2),
-                    round(current_price * 0.96, 2),
-                    round(current_price * 0.94, 2)
+                    round(current_price * 0.98, analysis["price"]["precision"]),
+                    round(current_price * 0.96, analysis["price"]["precision"]),
+                    round(current_price * 0.94, analysis["price"]["precision"])
                 ],
                 "confidence": 75 if rsi > 30 else 60,
                 "risk": "Moderado"
