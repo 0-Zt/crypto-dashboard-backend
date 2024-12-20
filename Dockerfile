@@ -1,22 +1,28 @@
-# Usar una imagen base ligera de Python
-FROM python:3.11-slim
+FROM python:3.8-slim
 
+# Instalar dependencias
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
+    build-essential \
+    wget \
     && rm -rf /var/lib/apt/lists/*
 
+# Descargar y compilar la librería C de TA-Lib desde SourceForge
+RUN wget https://downloads.sourceforge.net/project/ta-lib/ta-lib/0.4.0/ta-lib-0.4.0-src.tar.gz -O ta-lib-0.4.0-src.tar.gz && \
+    tar -xzf ta-lib-0.4.0-src.tar.gz && \
+    cd ta-lib-0.4.0 && \
+    ./configure --prefix=/usr && \
+    make && \
+    make install && \
+    cd .. && rm -rf ta-lib-0.4.0 ta-lib-0.4.0-src.tar.gz
+
 WORKDIR /app
+
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copiar el resto de la aplicación
 COPY . .
 
-# Establecer la variable de entorno para el puerto
 ENV PORT=8000
-
-# Exponer el puerto que usará la aplicación
 EXPOSE 8000
-
-# Comando para iniciar la aplicación
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
