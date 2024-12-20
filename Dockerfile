@@ -1,6 +1,7 @@
 FROM python:3.8-slim
 
 # Instalar dependencias
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     build-essential \
@@ -9,6 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Descargar TA-Lib desde SourceForge y compilar
+RUN --build=aarch64-unknown-linux-gnu
 RUN curl -L "https://downloads.sourceforge.net/project/ta-lib/ta-lib/0.4.0/ta-lib-0.4.0-src.tar.gz" -o ta-lib-0.4.0-src.tar.gz
 RUN tar -xzf ta-lib-0.4.0-src.tar.gz
 RUN cd ta-lib-0.4.0 && ./configure --prefix=/usr && make && make install
