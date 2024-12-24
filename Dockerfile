@@ -27,7 +27,7 @@ ENV CPATH="/opt/venv/include"
 ENV LDFLAGS="-L/opt/venv/lib"
 
 # Instalar wrapper python TA-Lib
-RUN pip install TA-Lib==0.4.24
+RUN pip install TA-Lib==0.4.26
 
 # Instalar el resto de dependencias
 COPY requirements.txt .
