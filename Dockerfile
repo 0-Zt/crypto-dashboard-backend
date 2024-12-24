@@ -14,7 +14,7 @@ RUN pip install numpy
 # Descargar y compilar TA-Lib desde SourceForge
 RUN wget https://downloads.sourceforge.net/project/ta-lib/ta-lib/0.4.0/ta-lib-0.4.0-src.tar.gz && \
     tar -xvzf ta-lib-0.4.0-src.tar.gz && \
-    cd ta-lib-0.4.0 && \
+    cd ta-lib && \
     ./configure --prefix=/opt/venv && \
     make && \
     make install && \
