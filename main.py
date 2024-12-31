@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from binance.um_futures import UMFutures
-from binance.client import Client as Spot
+from binance import Client as Spot
 import pandas as pd
 import numpy as np
 import os
