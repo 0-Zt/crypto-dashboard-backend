@@ -1,7 +1,7 @@
 fastapi==0.104.1
 uvicorn==0.24.0
 python-dotenv==1.0.0
-python-binance==1.0.19
+binance-connector==3.5.1
 pydantic==1.10.13
 binance-futures-connector==4.1.0
 pandas==2.0.3
