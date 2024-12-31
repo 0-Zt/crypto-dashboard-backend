@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from binance.um_futures import UMFutures
 from binance import Client as Spot
+from binance.um_futures import UMFutures
 import pandas as pd
 import numpy as np
 import os
@@ -18,6 +18,24 @@ from analysis import calculate_indicators, generate_trading_suggestion
 # Cargar variables de entorno
 load_dotenv()
 
+# Crear la aplicación FastAPI
+app = FastAPI()
+
+# Configurar CORS - IMPORTANTE: Debe estar antes de incluir las rutas
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://localhost:8000",
+        "https://crypto-dashboard-frontend-chi.vercel.app",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["*"],
+)
+
 # Configuración de logging
 logging.basicConfig(
     level=logging.INFO,
@@ -26,17 +44,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Inicializar FastAPI
-app = FastAPI()
 settings = get_settings()
-
-# Configurar CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173", "http://localhost:8000", "https://crypto-dashboard-frontend-chi.vercel.app/dashboard"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 # Incluir rutas 
 app.include_router(portfolio_routes.router, prefix="/api", tags=["portfolio"])
